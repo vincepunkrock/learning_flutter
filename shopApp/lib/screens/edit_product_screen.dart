@@ -22,7 +22,7 @@ class _EditProductScreenState extends State<EditProductScreen> {
   var _initValues = {
     "title": "", "price": "", "description": "", "imageUrl": ""
   };
-
+  var _isLoading = false;
   var _isInit = true;
 
   @override
@@ -59,14 +59,38 @@ class _EditProductScreenState extends State<EditProductScreen> {
       return;
     }
     _form.currentState.save();
+    setState(() {
+      _isLoading = true;
+    });
     if(_editedProduct.id != null) {
       Provider.of<Products>(context, listen: false).updateProduct(_editedProduct.id, _editedProduct);
+      Navigator.of(context).pop();
     }
     else {
-      Provider.of<Products>(context, listen: false).addProduct(_editedProduct);
+      Provider.of<Products>(context, listen: false).addProduct(_editedProduct).then((_) {
+        //do nothing, this then could be removed
+      }).catchError((error) {
+        showDialog(context: context, builder: (ctx) => AlertDialog(
+          title: Text("An error occurred"),
+          content: Text(error.toString()),
+          actions: [
+            FlatButton(
+              child: Text("OK"),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+              },
+            )
+          ],
+        ));
+      }).then((value) {
+        setState(() {
+          _isLoading = false;
+        });
+        Navigator.of(context).pop();
+      });
     }
 
-    Navigator.of(context).pop();
+
   }
 
   @override
@@ -93,7 +117,9 @@ class _EditProductScreenState extends State<EditProductScreen> {
           )
         ],
       ),
-      body: Form(
+      body: _isLoading? Center(
+        child: CircularProgressIndicator(),
+      ) : Form(
         key: _form,
         child: ListView(
           padding: EdgeInsets.all(10),
